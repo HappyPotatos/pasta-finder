@@ -8,40 +8,56 @@ import pytesseract
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 from google import genai
 from google.genai import types
+from google.genai.types import Tool, GenerateContentConfig
+import serpapi
 
 
 
 def scrape():
 
-    url = 'https://www.macchiato.com.au/pages/view-menus'
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, 'html.parser')
+
+    location = input("Enter location \n")
+    client = serpapi.Client(api_key="a7441ad03a2e7d64d66d2e5521ae2658315e4c20ad70e22994ef062437618daf")
+
+    
+
+    results = client.search({
+        "engine": "google_maps",
+        "q": "pasta",
+        "ll": "@-33.8688,151.2093,14z",
+        "type": "search"
+    })
+
+    local_results = results["local_results"]
+
+
+    # response = requests.get(url)
 
     # menuTag = soup.find('img')
     # menuSrc = menuTag.get('src',None)
-    menuSrc = '//www.macchiato.com.au/cdn/shop/files/Breakfast_Menu.png?v=1772054800&width=2400'
     # print(menuTag)
     # print(menuSrc)
     # print(url)
+    # tools = [
+    #     {"url.context": {}},
+    # ]
 
-    if menuSrc:
-        bong = requests.compat.urljoin(url,menuSrc)
-        print(f"Opening image from: {bong}")
+    websiteList = []
+    for e in local_results:
+        if "website" in e:
+            websiteList.append(e["website"])
 
-        menuBong = requests.get(bong)
-        image = Image.open(BytesIO(menuBong.content))
-        client = genai.Client()
-        response = client.models.generate_content(
-            model="gemini-3.5-flash",
-            contents=["Give me a list of all pastas and their prices",image]
-        )
-        # extractedText = pytesseract.image_to_string(image)
-        # print(extractedText)
-        # print(response)
+    client = genai.Client()
+    response = client.models.generate_content(
+        model="gemini-3.5-flash",
+        contents=f"Give me a list of all pastas and their prices from this list of urls {websiteList}",
+        # config=GenerateContentConfig(
+        #     tools=tools
+        # )
+    )
 
-        # image.show()
-    else:
-        print('BONG')
+    print(response)
+
 
 if __name__ == '__main__':
     scrape()
